@@ -21,7 +21,7 @@ def generate_summary(conversation_text):
             "content": SUMMARY_SYSTEM_PROMPT.format(conversation_text)
         }],
         "max_tokens":
-        2000,
+        30000,
         "temperature":
         0.7
     }

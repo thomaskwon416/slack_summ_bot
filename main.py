@@ -1,9 +1,8 @@
 from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
-from flask import Flask, request
+from flask import Flask
 
 from configs.config import (
-    logger,
     SLACK_SIGNING_SECRET,
     SLACK_BOT_TOKEN,
 )

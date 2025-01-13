@@ -54,7 +54,7 @@ def fetch_channel_history_with_threads(client, channel_id):
                         exc_info=True)
 
         # 3) Sort everything by raw Slack timestamp
-        all_messages.sort(key=lambda m: float(m["raw_ts"]))
+        #all_messages.sort(key=lambda m: float(m["raw_ts"]))
         return all_messages
 
     except Exception as e:
