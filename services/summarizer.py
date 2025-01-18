@@ -23,7 +23,7 @@ def generate_summary(conversation_text):
         "max_tokens":
         30000,
         "temperature":
-        0.7
+        0.3
     }
 
     # Log the API request (sanitized/truncated as needed)

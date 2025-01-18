@@ -15,26 +15,45 @@ def register_slash_commands(app):
     def handle_summarize(ack, body, client, respond):
         """
         Slash command handler for /summarize.
-        Fetches channel messages, generates a summary, and sends the summary to the user via DM.
+        Fetches channel messages (including threads), generates a summary, 
+        and sends the summary to the user via DM.
         """
         ack()  # Acknowledge the slash command
         user_id = body["user_id"]
         channel_id = body["channel_id"]
 
-        logger.info(f"Received /summarize command from user {user_id} in channel {channel_id}.")
+        logger.info(
+            f"Received /summarize command from user {user_id} in channel {channel_id}."
+        )
 
-        # 1) Fetch channel history
+        # 1) Fetch channel history with threaded replies
         messages = fetch_channel_history_with_threads(client, channel_id)
         if not messages:
-            respond("No messages found in the past 7 days or an error occurred.")
-            logger.warning(f"No messages to summarize in channel {channel_id}.")
+            respond(
+                "No messages found in the past 7 days or an error occurred.")
+            logger.warning(
+                f"No messages to summarize in channel {channel_id}.")
             return
 
-        # 2) Build a single string from all messages
+        # 2) Build a single string from all messages, distinguishing top-level vs. replies
         conversation_text_lines = []
         for msg in messages:
-            line = f"({msg['timestamp']}) {msg['user']}: {msg['text']}"
+            # If it's a reply, use parent_ts as the top-level
+            # If it's top-level, the message's raw_ts is the top-level
+            top_level_ts = msg["parent_ts"] if msg["is_thread_reply"] else msg[
+                "raw_ts"]
+
+            if msg["is_thread_reply"]:
+                # Indicate it's a reply
+                line = (f"REPLY to top-level ts={top_level_ts} "
+                        f"({msg['timestamp']}) {msg['user']}: {msg['text']}")
+            else:
+                # Indicate it's top-level and provide that ts
+                line = (f"TOP-LEVEL ts={top_level_ts} "
+                        f"({msg['timestamp']}) {msg['user']}: {msg['text']}")
+
             conversation_text_lines.append(line)
+
         conversation_text = "\n".join(conversation_text_lines)
 
         if not conversation_text:
@@ -48,11 +67,15 @@ def register_slash_commands(app):
         except Exception as e:
             error_message = f"Sorry, I was unable to summarize the conversation. Error: {e}"
             send_dm_to_user(client, user_id, error_message)
-            respond("An error occurred while generating the summary. Check your DM for details.")
+            respond(
+                "An error occurred while generating the summary. Check your DM for details."
+            )
             logger.error("Error during summary generation.", exc_info=True)
             return
 
         # 4) Send DM to the user
         send_dm_to_user(client, user_id, summary)
-        respond(f"I've sent a summary of the last 7 days (including threaded replies) to <@{user_id}> via DM.")
+        respond(
+            f"I've sent a summary of the last 7 days (including threaded replies) to <@{user_id}> via DM."
+        )
         logger.info("Summary DM sent and command handling completed.")

@@ -11,6 +11,8 @@ def fetch_channel_history_with_threads(client, channel_id):
         "timestamp": "YYYY-MM-DD HH:MM:SS",
         "raw_ts": "1671481775.000300",
         "text": "...",
+        "parent_ts": <the top-level message's ts> or None,
+        "is_thread_reply": True if this is a reply, False otherwise
       }
     """
     one_week_ago_ts = str(
@@ -32,7 +34,8 @@ def fetch_channel_history_with_threads(client, channel_id):
         all_messages = []
         for top_msg in raw_messages:
             # Add the parent (top-level) message
-            all_messages.append(process_slack_message(top_msg, user_cache))
+            all_messages.append(
+                process_slack_message(top_msg, user_cache, parent_ts=None))
 
             # If there's a thread, fetch replies
             if top_msg.get("reply_count", 0) > 0:
@@ -44,17 +47,18 @@ def fetch_channel_history_with_threads(client, channel_id):
                         oldest=one_week_ago_ts,
                         limit=1000)
                     thread_messages = replies_resp.get("messages", [])
+                    # If there are replies (beyond the first top-level message)
                     if len(thread_messages) > 1:
                         for reply_msg in thread_messages[1:]:
                             all_messages.append(
-                                process_slack_message(reply_msg, user_cache))
+                                process_slack_message(reply_msg,
+                                                      user_cache,
+                                                      parent_ts=top_msg["ts"]))
                 except Exception as e:
                     logger.error(
                         f"Error fetching thread replies for ts={thread_ts}: {e}",
                         exc_info=True)
 
-        # 3) Sort everything by raw Slack timestamp
-        #all_messages.sort(key=lambda m: float(m["raw_ts"]))
         return all_messages
 
     except Exception as e:
@@ -74,8 +78,8 @@ def build_user_cache(client, raw_messages):
         try:
             user_info = client.users_info(user=uid)
             profile = user_info["user"]["profile"]
-            display_name = profile.get("display_name") or profile.get(
-                "real_name") or uid
+            display_name = (profile.get("display_name")
+                            or profile.get("real_name") or uid)
             user_cache[uid] = display_name
         except Exception as e:
             logger.error(f"Unable to fetch display name for user {uid}: {e}",
@@ -84,9 +88,20 @@ def build_user_cache(client, raw_messages):
     return user_cache
 
 
-def process_slack_message(msg, user_cache):
+def process_slack_message(msg, user_cache, parent_ts=None):
     """
-    Helper function to build a consistent dictionary from a Slack message.
+    Extended helper function to build a consistent dictionary from a Slack message,
+    including parent_ts and is_thread_reply for better context.
+    """
+    base_data = process_slack_message_base(msg, user_cache)
+    base_data["parent_ts"] = parent_ts
+    base_data["is_thread_reply"] = parent_ts is not None
+    return base_data
+
+
+def process_slack_message_base(msg, user_cache):
+    """
+    Base helper function to extract common fields from a Slack message.
     """
     user_id = msg.get("user", "unknown_user")
     text = msg.get("text", "")
@@ -105,7 +120,7 @@ def process_slack_message(msg, user_cache):
         "user": display_name,
         "timestamp": human_readable_ts,
         "raw_ts": raw_ts,
-        "text": text,
+        "text": text
     }
 
 

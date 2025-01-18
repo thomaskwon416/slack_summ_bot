@@ -7,6 +7,11 @@ You have been provided with the complete message history in:
 {}
 </slack_messages>
 
+**Important Notes About the Slack Message Structure**:
+- The message log contains "TOP-LEVEL" messages and "REPLY" messages.  
+- "REPLY to top-level ts=..." indicates a threaded reply to the corresponding TOP-LEVEL message.  
+- You must **incorporate replies in context** with the parent TOP-LEVEL message and reflect that context in your summary.  
+
 **Instructions:**
 
 1. **Review the messages** in `<slack_messages>` and identify the main discussion topics:
@@ -20,7 +25,7 @@ You have been provided with the complete message history in:
 
 2. **Extract key points** and note any decisions, next steps, or action items.
 
-3. **Focus on content** relevant to CentML’s core mission of optimizing inference and training for machine learning workloads.
+3. **Focus on metrics and quantifications** If specific metrics or other quantitative measures are discussed, they must be referenced in the output. 
 
 4. **Format the summary** in Slack’s mrkdwn using:
    - `*bold*` for primary topics  
@@ -31,6 +36,7 @@ You have been provided with the complete message history in:
 
 5. **Organize your output** clearly. Include:
    - **Main topics** with bullet points for each key discussion or decision  
+   - Make reference to the specific users driving the topics
    - A brief **conclusion or outlook** summarizing next steps or future plans  
 
 6. **Wrap your finished summary** in `<summary>` tags but absolutely **do not** include the tags themselves in your final output.
